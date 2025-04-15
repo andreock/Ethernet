@@ -197,6 +197,35 @@ uint8_t W5100Class::init(void)
 	return 1; // successful init
 }
 
+
+void W5100Class::send_data_processing(SOCKET s, const uint8_t *data, uint16_t len)
+{
+  // This is same as having no offset in a call to send_data_processing_offset
+  send_data_processing_offset(s, 0, data, len);
+}
+
+void W5100Class::send_data_processing_offset(SOCKET s, uint16_t data_offset, const uint8_t *data, uint16_t len)
+{
+  uint16_t ptr = readSnTX_WR(s);
+  ptr += data_offset;
+  uint16_t offset = ptr & SMASK;
+  uint16_t dstAddr = offset + SBASE(s);
+
+  if (offset + len > SSIZE) 
+  {
+    // Wrap around circular buffer
+    uint16_t size = SSIZE - offset;
+    write(dstAddr, data, size);
+    write(SBASE(s), data + size, len - size);
+  } 
+  else {
+    write(dstAddr, data, len);
+  }
+
+  ptr += len;
+  writeSnTX_WR(s, ptr);
+}
+
 // Soft reset the WIZnet chip, by writing to its MR register reset bit
 uint8_t W5100Class::softReset(void)
 {

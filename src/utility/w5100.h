@@ -145,7 +145,23 @@ public:
 
   static void execCmdSn(SOCKET s, SockCMD _cmd);
 
-
+    /**
+   * 
+   * This function read the Tx write pointer register and after copy the data in buffer update the Tx write pointer
+   * register. User should read upper byte first and lower byte later to get proper value.
+   */
+  void send_data_processing(SOCKET s, const uint8_t *data, uint16_t len);
+  /**
+   * @brief A copy of send_data_processing that uses the provided ptr for the
+   *        write offset.  Only needed for the "streaming" UDP API, where
+   *        a single UDP packet is built up over a number of calls to
+   *        send_data_processing_ptr, because TX_WR doesn't seem to get updated
+   *        correctly in those scenarios
+   * @param ptr value to use in place of TX_WR.  If 0, then the value is read
+   *        in from TX_WR
+   * @return New value for ptr, to be used in the next call
+   */
+  void send_data_processing_offset(SOCKET s, uint16_t data_offset, const uint8_t *data, uint16_t len);
   // W5100 Registers
   // ---------------
 //private:
@@ -443,6 +459,7 @@ private:
 		digitalWrite(ss_pin, HIGH);
 	}
 #endif
+
 };
 
 extern W5100Class W5100;
