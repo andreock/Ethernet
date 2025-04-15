@@ -198,6 +198,18 @@ uint8_t W5100Class::init(void)
 }
 
 
+uint16_t W5100Class::getRXReceivedSize(SOCKET s)
+{
+  uint16_t val=0,val1=0;
+  do {
+    val1 = readSnRX_RSR(s);
+    if (val1 != 0)
+      val = readSnRX_RSR(s);
+  } 
+  while (val != val1);
+  return val;
+}
+
 void W5100Class::send_data_processing(SOCKET s, const uint8_t *data, uint16_t len)
 {
   // This is same as having no offset in a call to send_data_processing_offset
@@ -224,6 +236,39 @@ void W5100Class::send_data_processing_offset(SOCKET s, uint16_t data_offset, con
 
   ptr += len;
   writeSnTX_WR(s, ptr);
+}
+
+
+void W5100Class::recv_data_processing(SOCKET s, uint8_t *data, uint16_t len, uint8_t peek)
+{
+  uint16_t ptr;
+  ptr = readSnRX_RD(s);
+  read_data(s, ptr, data, len);
+  if (!peek)
+  {
+    ptr += len;
+    writeSnRX_RD(s, ptr);
+  }
+}
+
+void W5100Class::read_data(SOCKET s, volatile uint16_t src, volatile uint8_t *dst, uint16_t len)
+{
+  uint16_t size;
+  uint16_t src_mask;
+  uint16_t src_ptr;
+
+  src_mask = src & SMASK;
+  src_ptr = RBASE(s) + src_mask;
+
+  if( (src_mask + len) > SSIZE ) 
+  {
+    size = SSIZE - src_mask;
+    read(src_ptr, (uint8_t *)dst, size);
+    dst += size;
+    read(RBASE(s), (uint8_t *) dst, len - size);
+  } 
+  else
+    read(src_ptr, (uint8_t *) dst, len);
 }
 
 // Soft reset the WIZnet chip, by writing to its MR register reset bit
